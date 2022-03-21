@@ -1,33 +1,158 @@
-turtles-own [age infected? days-contagious]
-patches-own [contaminated? days-contaminated]
+turtles-own [age thirsty? thirst infected? days-contagious]
+patches-own [contaminated? ]
+globals [date death-count]
 
+;////////////////////////////////////////////////////////////////////////////////
+;SETUP PROCESS///////////////////////////////////////////////////////////////////
+;////////////////////////////////////////////////////////////////////////////////
 to setup
-
   clear-all
   create-turtles-initially
   create-water-sources
   initial-person-and-resivoir-infection
   check-contamination
+  other-setup
   reset-ticks
+
 end
 
+;////////////////////////////////////////////////////////////////////////////////
+;STEP PROCESS////////////////////////////////////////////////////////////////////
+;////////////////////////////////////////////////////////////////////////////////
+
+; TODO
+;- Look up more on how it is spread person-to-person and the rates
+;
+
+
 to step
-  move-people ; moves people to random xy
-  age-people  ; Ages people one day
-  birth-death-people ; Births and Kills people
-  check-drinks-water ; Checks to see if a healthy person drinks water
-  check-person-to-person-contact
-  decrement-sickness
-  ;decrement-disease-in-water
+  move-turtles
+  check-thirst
+;  move-people ; moves people to random xy
+   age-people  ; Ages people one day
+   birth-death-people ; Births and Kills people
+   check-drinks-water ; Checks to see if a healthy person drinks water
+   check-person-to-person-contact
+   decrement-sickness
+;  ;decrement-disease-in-water
   check-contamination
-  decrease-pathogen-lifetime-in-water
+;  decrease-pathogen-lifetime-in-water
+  check-days
   tick
 end
+
+;////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+to check-days
+  if ticks mod thirst-level = 0 [set date date + 1]
+end
+
+
+
+
+to test-setup
+  create-turtles 1 [
+    set shape "circle"
+    set color yellow
+    setxy 0 0
+  ]
+end
+
+to test-step
+  ask turtles with [color = yellow][
+    ask patches in-radius 5 [
+      set pcolor yellow
+    ]
+    ask turtles in-radius 5 [
+      set color yellow
+    ]
+  ]
+
+end
+
+to other-setup
+  set date 0
+  set death-count 0
+end
+
+to create-water-sources
+  ask n-of water-patches patches [
+    set pcolor blue
+  ]
+end
+
+; Create a number of turtles
+to create-turtles-initially
+  create-turtles initial-population [
+    set infected? false
+    set thirsty? true
+    set thirst thirst-level
+    set color green
+    move-to one-of patches
+    ;set shape "circle"
+  ]
+end
+
+to move-turtles
+  ask turtles with [thirsty? = false][
+  rt random 90
+  lt random 90
+  forward 0.5
+  set thirst thirst + 1
+  ]
+  ask turtles with [thirsty? = true][
+    drink-water
+    face min-one-of patches with [ pcolor = blue or pcolor = orange ] [ distance myself ]
+    forward 0.5
+  ]
+
+end
+
+to drink-water
+  if pcolor = blue or pcolor = orange[
+    set thirsty? false
+    set thirst 0
+  ]
+end
+
+to check-thirst
+  ask turtles with [thirst > thirst-level][
+    set thirsty? true
+  ]
+end
+
+;Have every turtle look for a water patch when they get thirsty for half the day
+;Have them wander around for the other half of the day
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 to decrease-pathogen-lifetime-in-water
 
 end
 
+;TODO Add Incubation period
 to check-person-to-person-contact
   ask turtles with [infected? = true][
     ask turtles in-radius 2[
@@ -40,20 +165,29 @@ to check-person-to-person-contact
   ]
 end
 
+;TODODODO
 to decrement-sickness
-    ask turtles with [infected? = true][
-    ifelse days-contagious <= 0 [
+  ask turtles with [infected? = true][
+    set color red
+
+    ;33% chance of death
+    let tmp 4 * (thirst-level * 10)
+    let val random-float tmp
+    if val <= 1.0 [
+      die
+      set death-count death-count + 1
+      print death-count
+    ]
+
+    ;66% chance they survive
+    set tmp 6 * thirst-level
+    set val random-float tmp
+    if val <= 1.0[
       set infected? false
       set days-contagious 0
       set color green
-
-      ;30% chance of death
-      let val random-float 3
-      if val >= 2.0 [ die ]
-
-    ][
-      set days-contagious days-contagious - 1
     ]
+
   ]
 end
 
@@ -73,26 +207,25 @@ end
 to initial-person-and-resivoir-infection
   ask n-of percent-water-infected patches [
     set contaminated? true
+    set pcolor orange
   ]
 end
 
 to check-contamination
-  ask patches with [ contaminated? = true ][
-    set pcolor orange
-    ;If days contaminated is at -1, then it was just contaminated
-    ifelse days-contaminated = -1 [
-      set days-contaminated 0
-    ][
-      ifelse days-contaminated >= 14[
-        set days-contaminated -1
-        set contaminated? false
-        set pcolor blue
-      ][
-        set days-contaminated days-contaminated + 1
-      ]
+  ask patches with [ contaminated? = true][
+
+    if pcolor != orange [
+      set pcolor orange
     ]
 
-
+    ;1/14 chance of losing pathogen
+    let tmp 14 * thirst-level
+    let val random-float tmp
+    if val <= 1.0 [
+        ;print date
+        set contaminated? false
+        set pcolor blue
+    ]
   ]
 end
 
@@ -124,23 +257,9 @@ to age-people
   ]
 end
 
-; Create a number of turtles
-to create-turtles-initially
-  create-turtles initial-population [
-    set infected? false
-    set age 0
-    set color green
-    move-to one-of patches
-    set shape "circle"
-  ]
-end
 
-to create-water-sources
-  ask n-of water-patches patches [
-    set pcolor blue
-    set days-contaminated -1
-  ]
-end
+
+
 
 ; Need to have people moving randomly throughout the screen. For each step,
 ; If one person lands next to someone who is sick, try it out.
@@ -167,8 +286,8 @@ GRAPHICS-WINDOW
 50
 -50
 50
-0
-0
+1
+1
 1
 ticks
 30.0
@@ -248,7 +367,7 @@ water-patches
 water-patches
 0
 1000
-573.0
+732.0
 1
 1
 NIL
@@ -263,7 +382,7 @@ initial-population
 initial-population
 0
 1000
-1000.0
+739.0
 1
 1
 NIL
@@ -278,7 +397,7 @@ percent-water-infected
 percent-water-infected
 0
 100
-85.0
+38.0
 1
 1
 NIL
@@ -300,8 +419,9 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -2674135 true "" "plot count turtles with [infected? = true]"
-"pen-1" 1.0 0 -7500403 true "" "plot count turtles with [infected? = false]"
+"Infected" 1.0 0 -2674135 true "" "plot count turtles with [infected? = true]"
+"Healthy" 1.0 0 -13345367 true "" "plot count turtles with [infected? = false]"
+"Dead" 1.0 0 -16777216 true "" "plot death-count"
 
 PLOT
 8
@@ -323,10 +443,10 @@ PENS
 "pen-1" 1.0 0 -13345367 true "" "plot count patches with [pcolor = blue]"
 
 MONITOR
-24
-313
-81
-358
+0
+321
+57
+366
 Healthy
 count turtles with [infected? = false]
 0
@@ -334,13 +454,61 @@ count turtles with [infected? = false]
 11
 
 MONITOR
-115
-313
-175
-358
+60
+321
+120
+366
 Infected
 count turtles with [infected? = true]
 0
+1
+11
+
+SLIDER
+516
+590
+688
+623
+thirst-level
+thirst-level
+0
+250
+57.0
+1
+1
+NIL
+HORIZONTAL
+
+MONITOR
+51
+221
+108
+266
+Days
+date
+0
+1
+11
+
+MONITOR
+125
+322
+182
+367
+Deaths
+death-count
+0
+1
+11
+
+MONITOR
+10
+271
+177
+316
+Total People
+count turtles + death-count
+17
 1
 11
 
