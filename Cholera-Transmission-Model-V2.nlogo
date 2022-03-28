@@ -1,102 +1,82 @@
-turtles-own [age thirsty? thirst infected? days-contagious]
-patches-own [contaminated? ]
-globals [date death-count]
+turtles-own [ infected? thirsty? thirst time-sick immunity]
+patches-own [ contaminated? ]
+globals [ total sick healthy dead immune day day-length]
 
-;////////////////////////////////////////////////////////////////////////////////
 ;SETUP PROCESS///////////////////////////////////////////////////////////////////
-;////////////////////////////////////////////////////////////////////////////////
 to setup
-  clear-all
-  create-turtles-initially
-  create-water-sources
-  initial-person-and-resivoir-infection
-  check-contamination
-  other-setup
+  clear-all                   ;Clear the model
+  create-water-sources        ;Creates water patches
+  create-people
+  extra-setup
   reset-ticks
-
 end
 
-;////////////////////////////////////////////////////////////////////////////////
 ;STEP PROCESS////////////////////////////////////////////////////////////////////
-;////////////////////////////////////////////////////////////////////////////////
-
-; TODO
-;- Look up more on how it is spread person-to-person and the rates
-;
-
-
 to step
+  update-people
   move-turtles
   check-thirst
-;  move-people ; moves people to random xy
-   age-people  ; Ages people one day
-   birth-death-people ; Births and Kills people
-   check-drinks-water ; Checks to see if a healthy person drinks water
-   check-person-to-person-contact
-   decrement-sickness
-;  ;decrement-disease-in-water
+  extra-functionality
   check-contamination
-;  decrease-pathogen-lifetime-in-water
-  check-days
+  decrement-sickness
+  decrement-immunity
+  count-populations
   tick
 end
 
-;////////////////////////////////////////////////////////////////////////////////
 
+;###############################################################################
+;######################### HELPER FUNCTIONS BELOW ##############################
+;###############################################################################
 
-
-
-to check-days
-  if ticks mod thirst-level = 0 [set date date + 1]
+to count-populations
+  set healthy (count turtles with [infected? = false and immunity <= 0])
+  set immune (count turtles with [infected? = false and immunity > 0])
+  set sick (count turtles with [infected? = true])
+  set total (healthy + sick + dead + immune)
 end
 
-
-
-
-to test-setup
-  create-turtles 1 [
-    set shape "circle"
-    set color yellow
-    setxy 0 0
-  ]
-end
-
-to test-step
-  ask turtles with [color = yellow][
-    ask patches in-radius 5 [
-      set pcolor yellow
+;TODO
+to decrement-sickness
+  ask turtles with [infected? = true][
+    if color != red [
+      set color red
     ]
-    ask turtles in-radius 5 [
-      set color yellow
+    ifelse time-sick > Infection-Length [
+      ;Check if dies. 25-50% chance
+      let random-chance ((random 25) + 25)
+      let random-val (random 100)
+      ifelse(random-val < random-chance)[;Dies if under the chance
+        set dead (dead + 1)
+        die
+      ][
+        set infected? false
+        set immunity Max-Immunity
+      ]
+    ][
+      set time-sick (time-sick + 1)
+
     ]
   ]
 
 end
 
-to other-setup
-  set date 0
-  set death-count 0
-end
-
-to create-water-sources
-  ask n-of water-patches patches [
-    set pcolor blue
+to decrement-immunity
+  ask turtles with [immunity > 0][
+    set immunity (immunity - 1)
   ]
 end
 
-; Create a number of turtles
-to create-turtles-initially
-  create-turtles initial-population [
-    set infected? false
-    set thirsty? true
-    set thirst thirst-level
-    set color green
-    move-to one-of patches
-    ;set shape "circle"
-  ]
+to extra-functionality
+  if ticks mod day-length = 0 [set day (day + 1)]
 end
 
-to move-turtles
+to extra-setup
+  set day 0
+  set day-length 200
+end
+
+to move-turtles                 ;moves turtles
   ask turtles with [thirsty? = false][
   rt random 90
   lt random 90
@@ -104,110 +84,25 @@ to move-turtles
   set thirst thirst + 1
   ]
   ask turtles with [thirsty? = true][
-    drink-water
-    face min-one-of patches with [ pcolor = blue or pcolor = orange ] [ distance myself ]
-    forward 0.5
-  ]
-
-end
-
-to drink-water
-  if pcolor = blue or pcolor = orange[
-    set thirsty? false
-    set thirst 0
-  ]
-end
-
-to check-thirst
-  ask turtles with [thirst > thirst-level][
-    set thirsty? true
-  ]
-end
-
-;Have every turtle look for a water patch when they get thirsty for half the day
-;Have them wander around for the other half of the day
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-to decrease-pathogen-lifetime-in-water
-
-end
-
-;TODO Add Incubation period
-to check-person-to-person-contact
-  ask turtles with [infected? = true][
-    ask turtles in-radius 2[
-      if infected? = false [
-        set color red
-        set infected? true
-        set days-contagious 7
+    ;IF DRINKING WATER
+    if pcolor = blue or pcolor = orange[
+      set thirsty? false
+      set thirst (random 200)
+      ; Check if you get infected from drinking the water
+      if pcolor = orange and infected? = false[
+        let randval (random Max-Immunity)
+        if randval > immunity [
+          set infected? true
+          set time-sick (random Infection-Length)
+          set immunity 0
+        ]
+      ]
+      if pcolor = blue and infected? = true[
+        set contaminated? true
       ]
     ]
-  ]
-end
-
-;TODODODO
-to decrement-sickness
-  ask turtles with [infected? = true][
-    set color red
-
-    ;33% chance of death
-    let tmp 4 * (thirst-level * 10)
-    let val random-float tmp
-    if val <= 1.0 [
-      die
-      set death-count death-count + 1
-      print death-count
-    ]
-
-    ;66% chance they survive
-    set tmp 6 * thirst-level
-    set val random-float tmp
-    if val <= 1.0[
-      set infected? false
-      set days-contagious 0
-      set color green
-    ]
-
-  ]
-end
-
-to check-drinks-water
-  ask turtles with [pcolor = orange and infected? = false][
-    set color red
-    set infected? true
-    set days-contagious 7
-  ]
-  ask turtles with [pcolor = blue and infected? = true][
-    set pcolor orange
-    set contaminated? true
-  ]
-end
-
-
-to initial-person-and-resivoir-infection
-  ask n-of percent-water-infected patches [
-    set contaminated? true
-    set pcolor orange
+    face min-one-of patches with [ pcolor = blue or pcolor = orange ] [ distance myself ]
+    forward 0.5
   ]
 end
 
@@ -218,8 +113,8 @@ to check-contamination
       set pcolor orange
     ]
 
-    ;1/14 chance of losing pathogen
-    let tmp 14 * thirst-level
+    ;DF 14
+    let tmp Decontamination-Chance
     let val random-float tmp
     if val <= 1.0 [
         ;print date
@@ -229,50 +124,70 @@ to check-contamination
   ]
 end
 
-; Asks all turtles to hatch or die based on rates
-to birth-death-people
-  ask turtles [
-    let val random-float 365.1
-    if val <= 0.044 [
-      hatch 1 [
-        setxy random-xcor random-ycor
-      ]
-    ]
-    if val <= 0.033 [
-      die
-    ]
+to check-thirst
+  ask turtles with [thirst > day-length][
+    set thirsty? true
   ]
-
 end
 
-to move-people
-  ask turtles [
+to create-water-sources        ;Creates water patches
+  ask patch 0 0 [
+    set pcolor blue
+    set contaminated? false
+  ]
+end
+
+to create-people               ;Creates people
+
+  ; Create turtles
+  create-turtles Initial_Population [
+    set infected? false
     setxy random-xcor random-ycor
+    set color yellow
+    set thirsty? false
+    set thirst (random 200)
+    set immunity 0
   ]
+
+  ;Set variables for counting populations
+  set total Initial_Population
+  set dead 0
+  set sick 0
+
+  ; Set some turtles to be infected
+  ask n-of Initial_People_Infected turtles [
+    set infected? true
+    set sick Initial_People_Infected
+  ]
+
+  ;Create some people that are immune
+  ask n-of Initial_Immune_Population turtles with [infected? = false][
+    set immunity (random Max-Immunity)
+  ]
+
+  ;Set healthy population count
+  set healthy (total - sick)
+
 end
 
-to age-people
-  ask turtles [
-    set age age + 1
+to update-people              ;Update people's colors and values
+  ask turtles with [infected? = true][
+    set color red
+  ]
+
+  ask turtles with [infected? = false][
+    ifelse immunity <= 0 [set color yellow][set color cyan]
   ]
 end
-
-
-
-
-
-; Need to have people moving randomly throughout the screen. For each step,
-; If one person lands next to someone who is sick, try it out.
-; If someone lands in a patch of water, and they are sick, then they can infect the water.
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
+149
 10
-723
-524
+820
+682
 -1
 -1
-5.0
+13.0
 1
 10
 1
@@ -282,10 +197,10 @@ GRAPHICS-WINDOW
 1
 1
 1
--50
-50
--50
-50
+-25
+25
+-25
+25
 1
 1
 1
@@ -293,10 +208,10 @@ ticks
 30.0
 
 BUTTON
-6
+9
 10
-207
-43
+149
+88
 NIL
 setup
 NIL
@@ -310,10 +225,10 @@ NIL
 1
 
 BUTTON
-6
-44
-207
-77
+9
+88
+149
+167
 NIL
 step
 NIL
@@ -327,10 +242,10 @@ NIL
 1
 
 BUTTON
-6
-78
-206
-111
+9
+166
+150
+245
 run
 step
 T
@@ -344,71 +259,85 @@ NIL
 1
 
 SLIDER
-6
-113
-207
-146
-birth-rate
-birth-rate
+857
+316
+1029
+349
+Initial_People_Infected
+Initial_People_Infected
+0
+50
+8.0
+1
+1
+NIL
+HORIZONTAL
+
+MONITOR
+9
+304
+150
+365
+Healthy Population
+healthy
+17
+1
+15
+
+MONITOR
+9
+244
+150
+305
+Total Population
+total
+17
+1
+15
+
+MONITOR
+9
+365
+150
+426
+Infected Population
+sick
+17
+1
+15
+
+MONITOR
+9
+425
+150
+486
+Death Count
+dead
+17
+1
+15
+
+SLIDER
+857
+283
+1029
+316
+Initial_Population
+Initial_Population
 0
 100
-88.0
-44
-1
-NIL
-HORIZONTAL
-
-SLIDER
-342
-553
-514
-586
-water-patches
-water-patches
-0
-1000
-732.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-342
-590
-514
-623
-initial-population
-initial-population
-0
-1000
-739.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-516
-554
-695
-587
-percent-water-infected
-percent-water-infected
-0
-100
-38.0
+100.0
 1
 1
 NIL
 HORIZONTAL
 
 PLOT
-732
-11
-1467
-521
-Populations
+1042
+58
+1528
+440
+Populations vs Time
 Time
 Population
 0.0
@@ -419,164 +348,99 @@ true
 false
 "" ""
 PENS
-"Infected" 1.0 0 -2674135 true "" "plot count turtles with [infected? = true]"
-"Healthy" 1.0 0 -13345367 true "" "plot count turtles with [infected? = false]"
-"Dead" 1.0 0 -16777216 true "" "plot death-count"
-
-PLOT
-8
-374
-208
-524
-Water
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -955883 true "" "plot count patches with [pcolor = orange]"
-"pen-1" 1.0 0 -13345367 true "" "plot count patches with [pcolor = blue]"
+"Total" 1.0 0 -16777216 true "" "plot total"
+"Healthy" 1.0 0 -1184463 true "" "plot healthy"
+"Sick" 1.0 0 -2674135 true "" "plot sick"
+"Dead" 1.0 0 -4539718 true "" "plot dead"
+"Immune" 1.0 0 -11221820 true "" "plot immune"
 
 MONITOR
-0
-321
-57
-366
-Healthy
-count turtles with [infected? = false]
-0
+9
+486
+149
+547
+Day
+day
+17
 1
-11
+15
 
-MONITOR
-60
-321
-120
-366
-Infected
-count turtles with [infected? = true]
-0
+INPUTBOX
+884
+454
+1039
+514
+Decontamination-Chance
+14.0
 1
-11
+0
+Number
+
+INPUTBOX
+895
+528
+1050
+588
+Recovery-Chance
+0.0
+1
+0
+Number
+
+INPUTBOX
+918
+609
+1073
+669
+Infection-Length
+200.0
+1
+0
+Number
 
 SLIDER
-516
-590
-688
-623
-thirst-level
-thirst-level
+857
+349
+1029
+382
+Initial_Immune_Population
+Initial_Immune_Population
 0
-250
-57.0
+100
+14.0
 1
 1
 NIL
 HORIZONTAL
 
-MONITOR
-51
-221
-108
-266
-Days
-date
+INPUTBOX
+1153
+586
+1308
+646
+Max-Immunity
+200.0
+1
 0
-1
-11
-
-MONITOR
-125
-322
-182
-367
-Deaths
-death-count
-0
-1
-11
-
-MONITOR
-10
-271
-177
-316
-Total People
-count turtles + death-count
-17
-1
-11
+Number
 
 @#$#@#$#@
+## TODO
+-Create graph where you run it over and over and see what the end alive populations end up being shoot for 1000 iteration. 
+-Make model with 4 water holes where people barely go to different water holes. Create histograms. 
+-Initial conditions for 4 water situation: No infected, 1 of 4 water infected.
+
 ## WHAT IS IT?
 
--Cholera is a diarrhoeal disease that is caused by an intestinal bacterium
--Goal: Minimize the disease related mortality and reduce the associated costs
+(a general understanding of what the model is trying to show or explain)
 
 ## HOW IT WORKS
 
-SIWR Model: (TODO Plot these rates)
-S - Susceptible
-I - Infectious
-W - Waterborn Pathogen Concentration
-R - Recovered
-
-Added Modifications
-q - Immunity loss term for recovered rate (TODO)
-d - disease related death (TODO)
-
-Other Variables 
-V(t) - the rate of susceptible individuals being vaccinated per unit of time (TODO)
-b1 - Spread rate via person-to-person contact (TODO)
-nd - natural death rate (COMPLETED)
-nb - natural birth rate (COMPLETED)
-wr - Wane rate of effectiveness vs the vaccine (TODO)
-yr - Rate of disease related recoveries (TODO)
-a - Rate in which infected individuals shed pathogens in water (TODO)
-er - Rate in which pathogens decay in water (COMPLETE)
-
-Additional Rules
-- Only those persons who receive two-doses of vaccines are included in the recovered class (TODO)
-- assume the vaccine provides the same strength of immunity as had by those individuals who have recovered (TODO)
-
-Ideas and things to include
-- Could have variables adjusted by sliders and then introduce values found in the paper to see if the cost actually goes down
-- Could introduce a ML mode where the model tries to figure it out itself
-- Need to include a price of vaccination and see which variables will lessen it
-- Ask how the waterborn part of it is spread - Pretty sure that most people get it through drinking water
-
-
-## TYPES OF AGENTS IN MODEL
-
-- The only type of agent in the model will be human turtles. A lot of the other variables will be turtle own variables
-- Different human models would include susceptible, infectious, recovered
-
-## PROPERTIES OF AGENTS
-
-- The properties will be the variables listed above
-
-## Behaviors of the model
-
- - The main behavior of the model would be people moving around and transfering the disease to eachother
- - Birth
- - Death
- - Movement
-
-# TODO: 
-- sketch a block diagram of the predator-prey model in NetLogo (Priority)
-	- "That is the most important task right now. If you can get further in the 			  videos, that great, but focus on the code."
-- Understand El Farol model really well (Potentially)
-- Look at equations from 2.1 from the paper (Continue) file:///C:/Users/wesmu/Downloads/effectVaccinesCholera.pdf and plug in Endemic/Introduced variables in and see how it results
-
+(what rules the agents use to create the overall behavior of the model)
 
 ## HOW TO USE IT
 
-
+(how to use the model, including a description of each of the items in the Interface tab)
 
 ## THINGS TO NOTICE
 
