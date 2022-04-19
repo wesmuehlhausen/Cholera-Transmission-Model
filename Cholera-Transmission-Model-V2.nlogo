@@ -1,14 +1,18 @@
 turtles-own [ infected? thirsty? thirst time-sick immunity]
 patches-own [ contaminated? ]
-globals [ total sick healthy dead immune day day-length]
+globals [ total sick healthy dead immune day day-length iterations total-final-population average-final-population population-data]
 
 ;SETUP PROCESS///////////////////////////////////////////////////////////////////
 to setup
   clear-all                   ;Clear the model
   create-water-sources        ;Creates water patches
+  setup-plots-and-graphs
   create-people
   extra-setup
+  reset-iterations
   reset-ticks
+
+
 end
 
 ;STEP PROCESS////////////////////////////////////////////////////////////////////
@@ -21,6 +25,7 @@ to step
   decrement-sickness
   decrement-immunity
   count-populations
+  reset-check
   tick
 end
 
@@ -28,6 +33,28 @@ end
 ;###############################################################################
 ;######################### HELPER FUNCTIONS BELOW ##############################
 ;###############################################################################
+
+to setup-plots-and-graphs
+  set population-data []
+end
+
+to reset-check
+  let sick-patches (count patches with [contaminated? = true])
+  if sick = 0 and sick-patches = 0 [;if simulation is done
+
+    if Run-Multiple = true [
+      ask turtles [ die ];kill all turtles
+      create-people
+      extra-setup
+      set iterations iterations + 1
+      let new-population (healthy)
+      set population-data lput new-population population-data;;Add to histogram
+      show population-data
+      set total-final-population total-final-population + new-population
+      set average-final-population (total-final-population / iterations)
+    ]
+  ]
+end
 
 to count-populations
   set healthy (count turtles with [infected? = false and immunity <= 0])
@@ -74,6 +101,12 @@ end
 to extra-setup
   set day 0
   set day-length 200
+
+end
+
+to reset-iterations
+  set iterations 0
+  set total-final-population 0
 end
 
 to move-turtles                 ;moves turtles
@@ -153,6 +186,7 @@ to create-people               ;Creates people
   set total Initial_Population
   set dead 0
   set sick 0
+  set average-final-population 0
 
   ; Set some turtles to be infected
   ask n-of Initial_People_Infected turtles [
@@ -259,15 +293,15 @@ NIL
 1
 
 SLIDER
-857
-316
-1029
-349
+1305
+51
+1477
+84
 Initial_People_Infected
 Initial_People_Infected
 0
 50
-8.0
+5.0
 1
 1
 NIL
@@ -318,10 +352,10 @@ dead
 15
 
 SLIDER
-857
-283
-1029
-316
+1305
+18
+1477
+51
 Initial_Population
 Initial_Population
 0
@@ -333,10 +367,10 @@ NIL
 HORIZONTAL
 
 PLOT
-1042
-58
-1528
-440
+820
+10
+1306
+392
 Populations vs Time
 Time
 Population
@@ -366,10 +400,10 @@ day
 15
 
 INPUTBOX
-884
-454
-1039
-514
+1305
+115
+1460
+175
 Decontamination-Chance
 14.0
 1
@@ -377,10 +411,10 @@ Decontamination-Chance
 Number
 
 INPUTBOX
-895
-528
-1050
-588
+1306
+175
+1461
+235
 Recovery-Chance
 0.0
 1
@@ -388,10 +422,10 @@ Recovery-Chance
 Number
 
 INPUTBOX
-918
-609
-1073
-669
+1306
+235
+1461
+295
 Infection-Length
 200.0
 1
@@ -399,10 +433,10 @@ Infection-Length
 Number
 
 SLIDER
-857
-349
-1029
-382
+1305
+84
+1477
+117
 Initial_Immune_Population
 Initial_Immune_Population
 0
@@ -414,15 +448,55 @@ NIL
 HORIZONTAL
 
 INPUTBOX
-1153
-586
-1308
-646
+1305
+295
+1460
+355
 Max-Immunity
 200.0
 1
 0
 Number
+
+SWITCH
+9
+546
+149
+579
+Run-Multiple
+Run-Multiple
+0
+1
+-1000
+
+PLOT
+826
+399
+1302
+710
+Final Healthy Populations
+NIL
+NIL
+0.0
+200.0
+0.0
+200.0
+false
+false
+"set-plot-x-range 0 Initial_Population\nset-plot-y-range 0 count turtles\nset-histogram-num-bars 7" ""
+PENS
+"default" 1.0 1 -16777216 true "" "histogram population-data"
+
+MONITOR
+1309
+360
+1459
+405
+Average Final Population
+average-final-population
+0
+1
+11
 
 @#$#@#$#@
 ## TODO
