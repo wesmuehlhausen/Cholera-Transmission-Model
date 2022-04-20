@@ -35,7 +35,7 @@ end
 ;###############################################################################
 
 to setup-plots-and-graphs
-  set population-data []
+  set population-data [1]
 end
 
 to reset-check
@@ -43,18 +43,19 @@ to reset-check
   if sick = 0 and sick-patches = 0 [;if simulation is done
 
     if Run-Multiple = true [
-      ask turtles [ die ];kill all turtles
-      create-people
-      extra-setup
-      set iterations iterations + 1
       let new-population (healthy)
       set population-data lput new-population population-data;;Add to histogram
       show population-data
       set total-final-population total-final-population + new-population
       set average-final-population (total-final-population / iterations)
+      ask turtles [ die ];kill all turtles
+      create-people
+      extra-setup
+      set iterations iterations + 1
     ]
   ]
 end
+
 
 to count-populations
   set healthy (count turtles with [infected? = false and immunity <= 0])
@@ -105,7 +106,7 @@ to extra-setup
 end
 
 to reset-iterations
-  set iterations 0
+  set iterations 1
   set total-final-population 0
 end
 
@@ -235,8 +236,8 @@ GRAPHICS-WINDOW
 25
 -25
 25
-1
-1
+0
+0
 1
 ticks
 30.0
@@ -301,7 +302,7 @@ Initial_People_Infected
 Initial_People_Infected
 0
 50
-5.0
+17.0
 1
 1
 NIL
@@ -441,7 +442,7 @@ Initial_Immune_Population
 Initial_Immune_Population
 0
 100
-14.0
+8.0
 1
 1
 NIL
@@ -481,9 +482,9 @@ NIL
 200.0
 0.0
 200.0
+true
 false
-false
-"set-plot-x-range 0 Initial_Population\nset-plot-y-range 0 count turtles\nset-histogram-num-bars 7" ""
+"set-plot-x-range 0 1\n;set-plot-x-range 0 Initial_Population\nset-plot-y-range 0 count turtles\n;set-plot-y-range 0 max population-data\nset-histogram-num-bars 10" "set-plot-x-range 0 (max population-data)\nset-histogram-num-bars 10"
 PENS
 "default" 1.0 1 -16777216 true "" "histogram population-data"
 
