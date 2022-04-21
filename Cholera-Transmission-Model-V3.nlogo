@@ -46,6 +46,7 @@ to default-setup
   set Max-Immunity 200
   set Infection-Duration 200
   set Travelers-Per-Day 5
+  set Run-Multiple true
 end
 
 to update-destinations
