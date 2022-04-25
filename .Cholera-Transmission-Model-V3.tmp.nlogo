@@ -375,7 +375,7 @@ Initial-People-Infected
 Initial-People-Infected
 0
 Initial-Population
-0.0
+1.0
 1
 1
 NIL
@@ -482,7 +482,7 @@ Initial-People-Immune
 Initial-People-Immune
 0
 Initial-Population
-100.0
+8.0
 1
 1
 NIL
@@ -705,8 +705,6 @@ String
 -Make model with 4 water holes where people barely go to different water holes. Create histograms. 
 -Initial conditions for 4 water situation: No infected, 1 of 4 water infected.
 
--Include quarantine conditions
--
 
 ## WHAT IS IT?
 
