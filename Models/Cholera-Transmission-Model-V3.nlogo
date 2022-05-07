@@ -1,6 +1,6 @@
 turtles-own [ infected? thirsty? thirst time-sick immunity water-source]
 patches-own [ contaminated? ]
-globals [ total sick healthy dead immune day iterations total-final-population average-final-population population-data population?]
+globals [ total sick healthy dead immune day iterations total-final-population average-final-population population-data population? continue?]
 
 ;SETUP PROCESS///////////////////////////////////////////////////////////////////
 to setup
@@ -16,17 +16,22 @@ end
 
 ;STEP PROCESS////////////////////////////////////////////////////////////////////
 to step
-  update-people
-  move-turtles
-  check-thirst
-  extra-functionality
-  check-contamination
-  decrement-sickness
-  decrement-immunity
-  count-populations
-  update-destinations
-  reset-check
-  tick
+  check-for-stop
+  if continue? = true [
+    update-people
+    move-turtles
+    check-thirst
+    extra-functionality
+    check-contamination
+    decrement-sickness
+    decrement-immunity
+    count-populations
+    update-destinations
+    reset-check
+    tick
+  ]
+
+
 end
 
 
@@ -34,6 +39,14 @@ end
 ;###############################################################################
 ;######################### HELPER FUNCTIONS BELOW ##############################
 ;###############################################################################
+
+to check-for-stop
+  if Run-Multiple = true [
+    if iterations >= Stop-Cycle [
+      set continue? false
+    ]
+  ]
+end
 
 ;Add a reset check and run it in intervals of
 to setup-path
@@ -54,6 +67,7 @@ to default-setup
   set Infection-Duration 200
   set Travelers-Per-Day 5
   set Run-Multiple true
+  set Stop-Cycle 500
 end
 
 to update-destinations
@@ -150,6 +164,7 @@ to reset-iterations
   set iterations 0
   set total-final-population 0
   set population? false
+  set continue? true
 end
 
 to move-turtles                 ;moves turtles ;show 1 + (random (4))
@@ -375,7 +390,7 @@ Initial-People-Infected
 Initial-People-Infected
 0
 Initial-Population
-0.0
+1.0
 1
 1
 NIL
@@ -434,7 +449,7 @@ Initial-Population
 Initial-Population
 0
 250
-100.0
+201.0
 1
 1
 NIL
@@ -482,7 +497,7 @@ Initial-People-Immune
 Initial-People-Immune
 0
 Initial-Population
-100.0
+193.0
 1
 1
 NIL
@@ -513,7 +528,7 @@ Population Frequency
 200.0
 true
 false
-"set-plot-x-range 0 1\n;set-plot-x-range 0 Initial_Population\nset-plot-y-range 0 250\n;set-plot-y-range 0 max population-data\nset-histogram-num-bars 40" "ifelse (length population-data) = 0 \n[set-plot-x-range 0 100]\n[set-plot-x-range 0 (max population-data)]\nset-histogram-num-bars 40"
+"set-plot-x-range 0 1\n;set-plot-x-range 0 Initial_Population\nset-plot-y-range 0 100\n;set-plot-y-range 0 max population-data\nset-histogram-num-bars 25" "ifelse (length population-data) = 0 \n[set-plot-x-range 0 100]\n[set-plot-x-range 0 (max population-data)]\nset-histogram-num-bars 25"
 PENS
 "default" 1.0 1 -16777216 true "" "histogram population-data"
 
@@ -605,7 +620,7 @@ Infection-Duration
 Infection-Duration
 0
 250
-200.0
+150.0
 1
 1
 NIL
@@ -694,55 +709,23 @@ INPUTBOX
 1469
 729
 download-path
-c:/Users/wesmu/Desktop/plot.csv
+c:/Users/wesmu/Desktop/plotg3.csv
 1
 0
 String
 
+INPUTBOX
+1030
+579
+1159
+639
+Stop-Cycle
+750.0
+1
+0
+Number
+
 @#$#@#$#@
-## TODO
--Create graph where you run it over and over and see what the end alive populations end up being shoot for 1000 iteration. 
--Make model with 4 water holes where people barely go to different water holes. Create histograms. 
--Initial conditions for 4 water situation: No infected, 1 of 4 water infected.
-
--Include quarantine conditions
--
-
-## WHAT IS IT?
-
-(a general understanding of what the model is trying to show or explain)
-
-## HOW IT WORKS
-
-(what rules the agents use to create the overall behavior of the model)
-
-## HOW TO USE IT
-
-(how to use the model, including a description of each of the items in the Interface tab)
-
-## THINGS TO NOTICE
-
-(suggested things for the user to notice while running the model)
-
-## THINGS TO TRY
-
-(suggested things for the user to try to do (move sliders, switches, etc.) with the model)
-
-## EXTENDING THE MODEL
-
-(suggested things to add or change in the Code tab to make the model more complicated, detailed, accurate, etc.)
-
-## NETLOGO FEATURES
-
-(interesting or unusual features of NetLogo that the model uses, particularly in the Code tab; or where workarounds were needed for missing features)
-
-## RELATED MODELS
-
-(models in the NetLogo Models Library and elsewhere which are of related interest)
-
-## CREDITS AND REFERENCES
-
-(a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
 @#$#@#$#@
 default
 true
